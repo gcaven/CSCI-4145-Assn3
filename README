@@ -1,0 +1,4 @@
+to deploy & run:
+  -ssh into Ubuntu VM
+  -$ sudo ./script/deploy.sh
+  -$ forever start server.js

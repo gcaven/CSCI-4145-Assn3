@@ -1,0 +1,129 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="app.css">
+  </head>
+  <body>
+    <div class='header'>
+      <h1>CS 4145: Student Database</h1>
+      <form id="new-student-form" style="margin-bottom: 50px">
+        <input type="text" name='url-student-id' id='url-student-id' placeholder="Student ID">
+        <input type="text" name='url-student-name' id='url-student-name' placeholder="Student Name">
+        <input type="submit" value="Insert" id="img-upload-button">
+      </form>
+    </div>
+    <div class="student-list"/>
+    <div class="loader">Loading...</div>
+  </body>
+
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
+  <script>
+    $(document).ready(function() {
+      var cloud_url = "https://res.cloudinary.com/dhdze0irb/image/upload/";
+
+      function update_list() {
+        $('.student-list').empty();
+        $('.loader').show();
+        $.ajax({
+          type: "GET",
+          url: '/list',
+          success: function(data){
+            console.log(data);
+            $('.loader').hide();
+            for (i in data) {
+              let student = data[i];
+              cont = '<div class="student-entry" data-student="' + student.studentId + '">';
+              cont += '<div class="left-pane">'
+              cont += '<span><strong>ID:</strong> ' + student.studentId +'</span>';
+              if (student.name) {
+                cont += '<span><strong>Name:</strong> ' + student.name +'</span>';
+              }
+              cont += '</div>'
+              if (student.imgId) {
+                cont += '<div class="right-pane">'
+                cont += '<img src="' + cloud_url + 'h_150/' + student.imgId + '"/>'
+                cont += '</div>'
+              }
+              cont += '<div class="img-upload-form">';
+              cont += '<input type="file" name="img-file" class="img-file">';
+              cont += '<button class="img-upload-btn">Set Student Image</button>';
+              cont += '</div>';
+              cont += '<button class="student-delete-button">Delete Student</button>';
+              cont += '</div>';
+              $('.student-list').append(cont);
+            }
+          },
+          error: function(err){
+            alert(JSON.stringify(err));
+          }
+        });
+      };
+
+      update_list();
+
+      $('#new-student-form').on('submit', function(e) {
+        e.preventDefault();
+        var id = $('#url-student-id').val();
+        var name = $('#url-student-name').val();
+        $.ajax({
+          type: "POST",
+          url: '/insert_student',
+          data: JSON.stringify({ 'studentId': id, 'name': name }),
+          contentType: "application/json; charset=utf-8",
+          dataType: "json",
+          success: function(data) {
+            update_list();
+          },
+          error: function(err) {
+            alert(JSON.stringify(err));
+            update_list();
+          }
+        });
+      });
+
+      $(document).on('click', '.student-delete-button', function(e) {
+        e.preventDefault();
+        var studentId = $(this).parent().data('student');
+        $.ajax({
+          type: "POST",
+          url: '/delete_student',
+          data: JSON.stringify({ 'studentId' : '' + studentId }),
+          contentType: "application/json; charset=utf-8",
+          dataType: "json",
+          success: function(data) {
+            update_list();
+          },
+          error: function(err) {
+            alert(JSON.stringify(err));
+            update_list();
+          }
+        });
+      });
+
+      $(document).on('click', '.img-upload-btn', function(e) {
+        e.preventDefault();
+        if ($(this).parent().find('input[type=file]')[0].files[0] != undefined) {
+          var studentId = $(this).parent().parent().data('student');
+          var data = new FormData();
+          data.append('studentId', studentId);
+          data.append('file0', $(this).parent().find('input[type=file]')[0].files[0]);
+          $.ajax({
+            type: "POST",
+            url: '/upload_student_image',
+            cache: false,
+            data: data,
+            processData: false,
+            contentType: false,
+            success: function(data){
+              update_list();
+              $('.uploader').hide();
+            },
+            error: function(err){
+              alert(JSON.stringify(err));
+              update_list();
+            }
+          });
+        }
+      });
+    });
+  </script>
+</html>
